@@ -133,7 +133,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
 
     while (((t + dt) <= tend) && (m <= 1) && (total <= pow(10, 7)))
     {
-        auto start_1 = std::chrono::system_clock::now();
+       // auto start_1 = std::chrono::system_clock::now();
         for (int i1 = 1; i1 <= highest_order; i1++)
         {
             pas = dt / (double)i1;
@@ -183,7 +183,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                                                            + pas * al1 * g_calc[l]; //calculate 6th
                     }
 
-                    r = x0n + (1 + stage_intern * stage_intern * (i - 1)) * pas * al1;  //r update (realted to 3-copy)
+                    //r = x0n + (1 + stage_intern * stage_intern * (i - 1)) * pas * al1;  //r update (realted to 3-copy)
                     for (int k = 2; k <= stage_intern; k++)
                     {
                         for (int l = 0; l < neqn; l++)
@@ -198,7 +198,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                                                                   - g_work[k+(i-1)*stage_intern-2][l] 
                                                                   + 2.0 * pas * al1 * g_calc[l];
                         }
-                        r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
+                        //r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
                     }
                 }
                 ODD_STAGE<ORDER>(stage, stage_intern, neqn, g_help, g_work, g_calc, r, &feval, pas, al1);
@@ -218,9 +218,9 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                 x0n = x0n + pas;
             }
         }
-        auto end = std::chrono::system_clock::now();
-        elapsed_seconds += (end - start_1);
-        std::time_t end_time_1 = std::chrono::system_clock::to_time_t(end);
+        //auto end = std::chrono::system_clock::now();
+       // elapsed_seconds += (end - start_1);
+        //std::time_t end_time_1 = std::chrono::system_clock::to_time_t(end);
 
         err = 0.0;
         ERROR_CALCULATION<ORDER>(neqn, g_oth, g, y, sc, tol, &err);
@@ -255,7 +255,6 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         else
         {
             accepted = accepted + 1;
-            ;
             if (total > 1)
             {
                 FAC<ORDER>(&fac, &err);
@@ -315,11 +314,11 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
             }
             else
             {
-                auto start_2 = std::chrono::system_clock::now();
+               // auto start_2 = std::chrono::system_clock::now();
                 SERKrho(neqn, t, g_help, g_calc, iwork, hmax, work, eigmax_p, idid_p);
-                auto end_2 = std::chrono::system_clock::now();
-                elapsed_seconds_2 += (end_2 - start_2);
-                std::time_t end_time = std::chrono::system_clock::to_time_t(end_2);
+               // auto end_2 = std::chrono::system_clock::now();
+               // elapsed_seconds_2 += (end_2 - start_2);
+               // std::time_t end_time = std::chrono::system_clock::to_time_t(end_2);
             }
         }
 
