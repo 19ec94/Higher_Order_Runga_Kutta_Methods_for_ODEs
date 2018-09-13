@@ -216,7 +216,7 @@ double ESERK(int neqn,double t,double tend,double dt, double *g, double tol,int 
       }
       else
       {
-        accepted=accepted+1;;
+        accepted=accepted+1;
         if(total>1)
         {
           FAC<ORDER>(&fac, &err);
