@@ -37,6 +37,10 @@ inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, dou
 double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, int *spcrad, int *iwork, double *work, int *idid_p)
 {
     std::chrono::duration<double> elapsed_seconds_2, elapsed_seconds;
+    double pas_al1=0;
+    double pas_al1_2=0;
+    double dummy_b=0; 
+    double dummy_sum[neqn];
     int m = 0, sec = 0;
     int stage = 0, stage_intern = 0, max_stages = 0;
     int total = 0, accepted = 0, rejected = 0, rej_counter = 0, feval = 0;
@@ -99,6 +103,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     total = total + 1;
     for (int i = 0; i < neqn; i++)
     {
+        dummy_sum[i]=0.0;
         sum[i] = 0.0;
         g_help[i] = g[i];
         g_save[i] = g_calc[i];
@@ -120,7 +125,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         SERKrho(neqn, t, g_help, g_calc, iwork, hmax, work, eigmax_p, idid_p);
         //cout<<"Internal rho "<<eigmax<<"\n";
         printf("Internal rho %.16f\n", eigmax);
-        cout << "Number of Func evaluations " << iwork[9] << "\n";
+       // cout << "Number of Func evaluations " << iwork[9] << "\n";
     }
 
     DTMAX<ORDER>(&dtmax, &eigmax);
@@ -138,18 +143,25 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         {
             pas = dt / (double)i1;
             x0n = t;
+            pas_al1 = pas *al1;     
+            pas_al1_2 = 2.0*pas_al1;
+           // printf("%f %f %f %f \n",pas,x0n,pas_al1,pas_al1_2) ;        
             for (int l = 0; l < neqn; l++)
             {
                 y0n[l] = g[l];
             } //1-copy
+            //std::copy(g,g+neqn,y0n);
+
             if (t > 0)
             {
                 f(neqn, t, g, g_calc); //f is the fcombusion function
                 feval = feval + 1;
+                
                 for (int l = 0; l < neqn; l++)
                 {
                     g_save[l] = g_calc[l];
                 } //2-copy
+                //std::copy(g_calc,g_calc+neqn,g_save);
             }
             for (int j = 1; j <= i1; j++)
             {
@@ -158,73 +170,110 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                 {
                     g_work[0][l] = y0n[l];
                 }
+                //std::copy( y0n,y0n+neqn ,&g_work[0][0]);
                 for (int i = 1; i <= (stage / stage_intern); i++)
                 {
+                    int i_1_stage_intern = (i-1)*stage_intern;
                     if (j == 1 && i == 1)
                     {
                         for (int l = 0; l < neqn; l++)
                         {
                             g_calc[l] = g_save[l];
-                        } //fourth copy
+                        } //fourth copy 
+                        //std::copy(g_save,g_save+neqn,g_calc);
                     }
                     else
-                    {
+                    {   
                         for (int l = 0; l < neqn; l++)
                         {
-                            g_help[l] = g_work[(i-1)*stage_intern][l];
-                        }                           //calculate and copy 5th copy
+                              g_help[l] = g_work[i_1_stage_intern][l];
+                            //g_help[l] = g_work[(i-1)*stage_intern][l];
+                        }                           //calculate and copy 5th copy 
+
+                        //std::copy( &g_work[(i-1)*stage_intern][0],&g_work[(i-1)*stage_intern][0]+neqn ,g_help);
                         f(neqn, r, g_help, g_calc); //function call
                         feval = feval + 1;
                     }
-
+                       //int t2 =(i-1)*stage_intern;
                     for (int l = 0; l < neqn; l++)
                     {
-                        g_work[1+(i-1)*stage_intern][l] = g_work[(i-1)*stage_intern][l] 
-                                                           + pas * al1 * g_calc[l]; //calculate 6th
+                        g_work[1+i_1_stage_intern][l] = g_work[i_1_stage_intern][l]+ pas_al1 * g_calc[l]; //calculate 6th
+                        //g_work[1+(i-1)*stage_intern][l] = g_work[(i-1)*stage_intern][l]+ pas * al1 * g_calc[l]; //calculate 6th
                     }
 
                     //r = x0n + (1 + stage_intern * stage_intern * (i - 1)) * pas * al1;  //r update (realted to 3-copy)
+                      
                     for (int k = 2; k <= stage_intern; k++)
                     {
+                        int k_i_1_stage_intern =k+i_1_stage_intern;
                         for (int l = 0; l < neqn; l++)
                         {
-                            g_help[l] = g_work[k+(i-1)*stage_intern-1][l];
+                            g_help[l] = g_work[k_i_1_stage_intern-1][l];
+                           //g_help[l] = g_work[k+(i-1)*stage_intern-1][l];
                         }
-                        f(neqn, r, g_help, g_calc); //function call
+                        f(neqn, r, g_help, g_calc); //function cal
                         feval = feval + 1;
                         for (int l = 0; l < neqn; l++)
                         {
-                            g_work[k+(i-1)*stage_intern][l] = 2.0 * g_work[k+(i-1)*stage_intern-1][l]
+                            g_work[k_i_1_stage_intern][l] = 2.0 * g_work[k_i_1_stage_intern-1][l]
+                                                                  - g_work[k_i_1_stage_intern-2][l] 
+                                                                  +  pas_al1_2 * g_calc[l];
+                        
+                            /*g_work[k+(i-1)*stage_intern][l] = 2.0 * g_work[k+(i-1)*stage_intern-1][l]
                                                                   - g_work[k+(i-1)*stage_intern-2][l] 
                                                                   + 2.0 * pas * al1 * g_calc[l];
+                         */
                         }
                         //r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
                     }
                 }
                 ODD_STAGE<ORDER>(stage, stage_intern, neqn, g_help, g_work, g_calc, r, &feval, pas, al1);
-                for (int k = 0; k < stage + 1; k++)
+              for (int k = 0; k < stage + 1; k++)
                 {
                     for (int l = 0; l < neqn; l++)
                     {
                         sum[l] = sum[l] + b[(start) + k] * g_work[k][l];
+                      //printf("%f \t", g_work[k][l] );
+                   // printf("%f \t", sum[l] );
                     }
+
+                      // printf("%f \t", b[start+k] );
                 }
+                // printf("\n");
                 for (int l = 0; l < neqn; l++)
                 {
                     y[i1 - 1][l] = sum[l];
+                //   y0n[l] = sum[l];
+                  //  sum[l] = 0.0;
+                }
+
+                for (int l = 0; l < neqn; l++)
+                {
                     y0n[l] = sum[l];
+                }
+
+                for (int l = 0; l < neqn; l++)
+                {
                     sum[l] = 0.0;
                 }
+                //std::copy(sum,sum+neqn,&y[i1-1][0]);
+                //std::copy(sum,sum+neqn,y0n);
+                //std::fill(sum,sum+neqn,0);
                 x0n = x0n + pas;
             }
         }
         //auto end = std::chrono::system_clock::now();
        // elapsed_seconds += (end - start_1);
         //std::time_t end_time_1 = std::chrono::system_clock::to_time_t(end);
-
+       
+       /*for(int i1=0; i1<5; i1++){
+       for(int i=0; i<neqn; i++){printf("%f \t",y[i1][i]);}
+       printf("\n");}
+        */
         err = 0.0;
         ERROR_CALCULATION<ORDER>(neqn, g_oth, g, y, sc, tol, &err);
         err = sqrt(err / neqn);
+       // printf("%.16f \n",err);
         t = t + dt;
         f(neqn, t, g, g_calc);
         feval = feval + 1;
@@ -235,7 +284,8 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
 
         //reject if error is too large
         if ((isnan(err) || ((1.0 / err) <= 1.0)))
-        {
+        { 
+            //printf("hey rej \n");
             rejected = rejected + 1;
             rej_counter = 0;
             tfail = t;
@@ -253,7 +303,8 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
             }
         }
         else
-        {
+        {  
+            //printf("hey accp \n");
             accepted = accepted + 1;
             if (total > 1)
             {
@@ -334,6 +385,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         //cout<<"al1 "<<al1<<endl;
         //printf("al1 %.16e\n",al1);
         //cout<<"*******************"<<endl;
+       // m = m+1;
     }
 
     cout << "Time needed for SERK  " << elapsed_seconds_2.count() << endl;
