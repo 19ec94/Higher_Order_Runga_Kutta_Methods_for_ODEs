@@ -1,0 +1,14 @@
+\section{Optimization}
+
+In the previous section template creation is explained. The initial templated C++ code is run. It is evident from the TABLE that the C++ version is much slower than Fortran and the difference is tied to problem size. That means, when the problem size is very small the difference between two versions is negligible. However when the problem size increases the time differences become very apparent. More importantly these two versions are compiled with GNU compiler with O3 option.\\
+ 
+Hence manual optimization is a good choice in order to get good performance. 
+
+\begin{itemize}
+	\item Memory access
+	\item Simple substitution 
+	\item Avoiding recalculation 
+\end{itemize}     
+
+\subsection{Memory access}
+ 

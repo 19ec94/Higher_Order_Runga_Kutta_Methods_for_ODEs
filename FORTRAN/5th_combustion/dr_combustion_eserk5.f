@@ -12,7 +12,7 @@ c       include '../ESERK_withoutRK34.f'
 ! program variables
 !
       integer          i, j, ns, neqn, idid, iwork(10), spcrad(2)
-      parameter (ns=100,neqn=ns*ns)
+      parameter (ns=599,neqn=ns*ns)
       double precision y(neqn), error, truey(neqn), ans, xx, yy
       double precision t, tend, r, h, rtol, atol, work(1+5*neqn)
       external         fcombustion
@@ -40,7 +40,7 @@ c       include '../ESERK_withoutRK34.f'
          end do
       end do
 ! ----- required tolerance -----
-      rtol=1.0d-3
+      rtol=1.0d-1
       atol=rtol
 ! ----- initial step size -----
       h=rtol

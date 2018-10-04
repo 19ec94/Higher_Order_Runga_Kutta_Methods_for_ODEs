@@ -37,7 +37,7 @@ c--------------------------------------------------------
 
       implicit none
       integer i, j, ns, nssq, neqn, idid, iwork(10), spcrad(2)
-      parameter (ns=100,neqn=ns*ns*2)
+      parameter (ns=400,neqn=ns*ns*2)
       double precision y(neqn), ans, xx, yy, rtol, atol, h, t, tend
       double precision work(1+5*neqn), truey(neqn), error
       external  fbrus
@@ -71,7 +71,7 @@ c--------------------------------------------------------
         end do
       end do
 ! ----- required tolerance -----
-      rtol=1.0d-3
+      rtol=1.0d-1
       atol=rtol
 ! ----- initial step size -----
       h=rtol

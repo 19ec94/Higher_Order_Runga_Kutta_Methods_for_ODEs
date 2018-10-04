@@ -1,0 +1,36 @@
+\section{Source code translation}
+There is already Fortran90 codes exist for ESERK4 (fourth order) and ESERK5 (fifth order)  which is developed by J.Mart\'{i}n-Vaquero and A.Kleefeld. 
+The first task is to translate these source codes of ESERK4 and ESERK5 from Fortran90 to C++. 
+
+The idea of ESERK is as follows: one chooses initial conditions, boundary conditions, discretization schemes, initial time step, final time step, and desired accuracy for the problem to be solved. Based on those inputs, the program first calculates eigenvalue in absolute value of Jacobian of the function. Depending on the eigenvalue stages, internal stages, and initial step size are calculated. Then the stabilized explicit Runge-Kutta (SERK) method calculates the function values at the new position. The SERK function uses a three term recurrence formula and is derived from stability polynomials which in turn constructed based on Chebyshev polynomials. Then Richardson extrapolation is used to calculate the final function value at the new position. After calculating the new function value the algorithm calculates the new step size, number of stages, and internal stages for next iteration. This procedure repeats until the final step is reached.  
+               
+%%explain little bit about code structure - first dt is choosen, stage choose, numerical solved  again new step size and timestep 
+
+The ESERK 
+
+
+\begin{itemize}
+	\item C++ feature- templates  
+	\item 
+	\item 
+	\item 
+	\item
+\end{itemize}    
+
+
+	
+	Algorithms can be included using the commands as shown in algorithm 
+	\begin{algorithm}
+		\caption{Euclid’s algorithm}\label{alg:euclid}
+		\begin{algorithmic}[1]
+			\Procedure{Euclid}{$a,b$}\Comment{The g.c.d. of a and b}
+			\State $r\gets a\bmod b$
+			\While{$r\not=0$}\Comment{We have the answer if r is 0}
+			\State $a\gets b$
+			\State $b\gets r$
+			\State $r\gets a\bmod b$
+			\EndWhile\label{euclidendwhile}
+			\State \textbf{return} $b$\Comment{The gcd is b}
+			\EndProcedure
+		\end{algorithmic}
+	\end{algorithm}

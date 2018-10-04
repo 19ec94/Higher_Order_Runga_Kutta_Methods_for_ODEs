@@ -253,6 +253,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
            // printf("%f \t", y0n[z]);  
            // printf("\n");       
         }
+        delete[] g_work;
        }
        /*for(int i1=0; i1<5; i1++){
        for(int i=0; i<neqn; i++){printf("%f \t",y[i1][i]);}
@@ -367,7 +368,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         STAGE_SELECTION<ORDER>(&ans, &stage, &start, &stage_intern);
         AL1<ORDER>(&al1, &stage);
 
-        //printf("eigenmax= %.23f \n", eigmax);
+        printf("eigenmax= %.23f \n", eigmax);
         //printf("dt = %.16e \n",dt);
        // cout<<"stage_intern "<<stage_intern<<endl;
        // cout<<"stage "<<stage<<endl;

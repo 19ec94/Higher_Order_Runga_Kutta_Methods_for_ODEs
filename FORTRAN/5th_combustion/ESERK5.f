@@ -16298,7 +16298,7 @@ c                write(*,*) 'number of func evals', iwork(9)
 
          !al1=1.0d0/(stage*stage/2.0d0)    !!! old
          al1=1.0d0/(stage*stage*49.0d0/100.0d0)   !!! new
-         !print*,eigmax
+         print*,eigmax
       end do
 
 c     everthing fine
