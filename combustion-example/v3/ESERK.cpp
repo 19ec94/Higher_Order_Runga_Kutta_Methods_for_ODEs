@@ -146,23 +146,23 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     DTMAX<ORDER>(&dtmax, &eigmax);
     ANS<ORDER>(&ans, &dt, &eigmax);
     STAGE_SELECTION<ORDER>(&ans, &stage, &start, &stage_intern);
+    
     cout<<"stage_intern "<<stage_intern<<endl;
     cout<<"stage "<<stage<<endl;
       
     AL1<ORDER>(&al1, &stage);
+    
 
     while (((t + dt) <= tend) && (m <= 1) && (total <= pow(10, 7)))
     { 
       #pragma omp parallel num_threads(2) private(pas,x0n,pas_al1,pas_al1_2,r,y0n,g_help,sum,i_1_stage_intern,k_i_1_stage_intern) \
-                                                            shared(start,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc,g_save) 
+                                                            shared(start>,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc,g_save) 
       {
-          double **g_work = new double *[stage+1];
+           double **g_work = new double *[stage+1];
           for (int i = 0; i < (stage+1); i++)
           {
             g_work[i] = new double[neqn];
           }
-
-
         #pragma omp for  reduction(+:feval)   
         for (int i1 = 1; i1 <= highest_order; i1++)
         { 
@@ -253,7 +253,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
            // printf("%f \t", y0n[z]);  
            // printf("\n");       
         }
-        delete[] g_work;
+       // delete[] g_work;
        }
        /*for(int i1=0; i1<5; i1++){
        for(int i=0; i<neqn; i++){printf("%f \t",y[i1][i]);}
@@ -423,9 +423,13 @@ inline void DTMAX(double *dtmax_p, double *eigmax_p)
     {
         *dtmax_p = 2000.0 * 2000.0 / (*eigmax_p);
     }
-    else
+    else if(order==5)
     {
         *dtmax_p = 0.98 * 2000.0 * 2000.0 / (*eigmax_p);
+    }
+    else if(order==6)
+    {
+        printf("include 6th");
     }
 
     return;
@@ -969,12 +973,32 @@ inline void STAGE_SELECTION(double *ans_p, int *stage_p, int *start_p, int *stag
     return;
 }
 
+/*
+template <int order>
+inline void AL1(double *al1_p, int *stage_p)
+{
+    printf("%d \n",order);
+}
+
+template <>
+inline void AL1<5>(double *al1_p, int *stage_p)
+{
+    *al1_p = 1.0 / ((*stage_p) * (*stage_p) * 49.0 / 100.0);
+    
+}
+template <>
+inline void AL1<4>(double *al1_p, int *stage_p)
+{
+    *al1_p = 1.0 / ((*stage_p) * (*stage_p) / 2.0);
+    
+}
+*/
 template <int order>
 inline void AL1(double *al1_p, int *stage_p)
 {
     if (order == 4)
     {
-        *al1_p = 1.0 / ((*stage_p) * (*stage_p) / 2.0);
+         *al1_p = 1.0 / ((*stage_p) * (*stage_p) / 2.0);
     }
     else
     {
@@ -983,6 +1007,8 @@ inline void AL1(double *al1_p, int *stage_p)
 
     return;
 }
+
+
 
 template <int order>
 inline void DT(double *eigmax_p, double *dt_p)

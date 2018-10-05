@@ -32,7 +32,7 @@ inline void ERROR_CALCULATION(int neqn, double *g_oth, double *g, double **y, do
 template <int order>
 inline void FAC(double *fac_p, double *err_p);
 template <int order>
-inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, double **g_work, double *g_calc, double r, int *feval_p, double pas, double al1);
+inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, double *g_work, double *g_calc, double r, int *feval_p, double pas, double al1);
 
 double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, int *spcrad, int *iwork, double *work, int *idid_p)
 {
@@ -40,45 +40,49 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     double pas_al1=0;
     double pas_al1_2=0;
     double dummy_b=0; 
-    double dummy_sum[neqn];
+    int k_i_1_stage_intern =0;
+    int i_1_stage_intern=0;
+
+
     int m = 0, sec = 0;
     int stage = 0, stage_intern = 0, max_stages = 0;
     int total = 0, accepted = 0, rejected = 0, rej_counter = 0, feval = 0;
     int start = 0; //starting index of the coefficient array b
     int idid = 0;
     double eigmax = 0, *eigmax_p = NULL, rho = 0; //previously it was eigmax
-    double *sum = NULL;
+   // double *sum = NULL;
     double err = 0, fac = 0;
-    double *g_calc = NULL, *g_help = NULL, *g_save = NULL;
+    //double *g_calc = NULL, *g_help = NULL;
     double *var_1 = NULL, *var_2 = NULL, *sc = NULL;
+    //double *g_save=NULL;
     double *g_oth = NULL, *g_rej = NULL;
     double r = 0, pas = 0, x0n = 0;
-    double *y0n = NULL;
+    //double *y0n = NULL;
     double dtmax = 0;
     double ans = 0;
     double hmax = 0;
     double tfail = 0, al1 = 0;
-    double **g_work;
+    //double **g_work;
     double **y;
     int highest_order = 0;
 
     idid_p = &idid;
     eigmax_p = &eigmax;
-    sum = new double[neqn];
-    g_calc = new double[neqn];
-    g_help = new double[neqn];
-    g_save = new double[neqn];
+    //sum = new double[neqn];
+    //g_calc = new double[neqn];
+   // g_help = new double[neqn];
+   // g_save = new double[neqn];
     g_oth = new double[neqn];
     var_1 = new double[neqn];
     var_2 = new double[neqn];
     sc = new double[neqn];
     g_rej = new double[neqn];
-    y0n = new double[neqn];
-    g_work = new double *[2001];
+   // y0n = new double[neqn];
+    /*g_work = new double *[2001];
     for (int i = 0; i < 2001; i++)
     {
         g_work[i] = new double[neqn];
-    }
+    }*/
 
     ORDER_SELECTION<ORDER>(&highest_order);
 
@@ -87,6 +91,18 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     {
         y[i] = new double[neqn];
     }
+
+    /* for OpenMP */
+    
+    double y0n[neqn];
+    double g_save[neqn];
+    double g_help[neqn];
+    double g_calc[neqn];
+    //double g_work[2001][neqn];
+    double sum[neqn];
+
+
+
 
     err = 0.0;
     max_stages = 0;
@@ -103,7 +119,6 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     total = total + 1;
     for (int i = 0; i < neqn; i++)
     {
-        dummy_sum[i]=0.0;
         sum[i] = 0.0;
         g_help[i] = g[i];
         g_save[i] = g_calc[i];
@@ -125,152 +140,112 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         SERKrho(neqn, t, g_help, g_calc, iwork, hmax, work, eigmax_p, idid_p);
         //cout<<"Internal rho "<<eigmax<<"\n";
         printf("Internal rho %.16f\n", eigmax);
-       // cout << "Number of Func evaluations " << iwork[9] << "\n";
+        //cout << "Number of Func evaluations " << iwork[9] << "\n";
     }
 
     DTMAX<ORDER>(&dtmax, &eigmax);
     ANS<ORDER>(&ans, &dt, &eigmax);
     STAGE_SELECTION<ORDER>(&ans, &stage, &start, &stage_intern);
-    //cout<<"stage_intern "<<stage_intern<<endl;
-    //cout<<"stage "<<stage<<endl;
+    cout<<"stage_intern "<<stage_intern<<endl;
+    cout<<"stage "<<stage<<endl;
       
     AL1<ORDER>(&al1, &stage);
+   
+    
+    double pas_s;
+    double x0n_s;
+    double pas_al1_s;
+    double pas_al1_2_s;
+    double y0n_s;
+    double g_s;
+    double g_calc_s;
+    double g_save_s;
+    double r_s;
+    double g_help_s;
+    double sum_s;
+
 
     while (((t + dt) <= tend) && (m <= 1) && (total <= pow(10, 7)))
-    {
-       // auto start_1 = std::chrono::system_clock::now();
-        for (int i1 = 1; i1 <= highest_order; i1++)
-        {
-            pas = dt / (double)i1;
-            x0n = t;
-            pas_al1 = pas *al1;     
-            pas_al1_2 = 2.0*pas_al1;
-           // printf("%f %f %f %f \n",pas,x0n,pas_al1,pas_al1_2) ;        
-            for (int l = 0; l < neqn; l++)
-            {
-                y0n[l] = g[l];
-            } //1-copy
-            //std::copy(g,g+neqn,y0n);
-
+    { 
+        printf("inside hte \n");
+        
+      #pragma omp parallel num_threads(1) default(none) private(g_s,pas_s,x0n_s,pas_al1_s,pas_al1_2_s,r_s,y0n_s,g_help_s,sum_s,i_1_stage_intern,k_i_1_stage_intern) \
+        shared(start,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc_s,g_save_s,g_calc,g_save) 
+      {
+        double *g_work_s = new double [stage+1];
+        double *y_s = new double[highest_order];
+        #pragma omp for  reduction(+:feval) 
+        for(int l=0; l<1; l++)
+        {  
+            g_calc_s=g_calc[l];
+            g_save_s=g_save[l];
+            y0n_s=g[l];
+            g_s=g[l];
+        printf("l=%d success \n",l);
+        for (int i1 = 1; i1 <= 1; i1++)
+        { 
+            pas_s = dt / (double)i1;
+            x0n_s = t;
+            pas_al1_s = pas_s *al1;
+            pas_al1_2_s = 2.0*pas_al1_s;  
+            y0n_s = g_s; 
+            g_s=g_s; //1-copy
             if (t > 0)
             {
-                f(neqn, t, g, g_calc); //f is the fcombusion function
+                f(neqn, t, &g_s, &g_calc_s); //f is the fcombusion function
                 feval = feval + 1;
-                
-                for (int l = 0; l < neqn; l++)
-                {
-                    g_save[l] = g_calc[l];
-                } //2-copy
-                //std::copy(g_calc,g_calc+neqn,g_save);
+                g_save_s = g_calc_s; 
             }
+            printf(" i1=%d passed\t",i1);
             for (int j = 1; j <= i1; j++)
             {
-                r = x0n; //3-copy
-                for (int l = 0; l < neqn; l++)
-                {
-                    g_work[0][l] = y0n[l];
-                }
-                //std::copy( y0n,y0n+neqn ,&g_work[0][0]);
+                r_s = x0n_s; //3-copy
+                g_work_s[0] = y0n_s; 
                 for (int i = 1; i <= (stage / stage_intern); i++)
                 {
-                    int i_1_stage_intern = (i-1)*stage_intern;
+                    i_1_stage_intern = (i-1)*stage_intern;
                     if (j == 1 && i == 1)
                     {
-                        for (int l = 0; l < neqn; l++)
-                        {
-                            g_calc[l] = g_save[l];
-                        } //fourth copy 
-                        //std::copy(g_save,g_save+neqn,g_calc);
+                        g_calc_s = g_save_s; //fourth copy 
                     }
                     else
                     {   
-                        for (int l = 0; l < neqn; l++)
-                        {
-                              g_help[l] = g_work[i_1_stage_intern][l];
-                            //g_help[l] = g_work[(i-1)*stage_intern][l];
-                        }                           //calculate and copy 5th copy 
-
-                        //std::copy( &g_work[(i-1)*stage_intern][0],&g_work[(i-1)*stage_intern][0]+neqn ,g_help);
-                        f(neqn, r, g_help, g_calc); //function call
+                        g_help_s = g_work_s[i_1_stage_intern];  //calculate and copy 5th copy 
+                        f(neqn, r_s, &g_help_s, &g_calc_s); //function call
                         feval = feval + 1;
-                    }
-                       //int t2 =(i-1)*stage_intern;
-                    for (int l = 0; l < neqn; l++)
-                    {
-                        g_work[1+i_1_stage_intern][l] = g_work[i_1_stage_intern][l]+ pas_al1 * g_calc[l]; //calculate 6th
-                        //g_work[1+(i-1)*stage_intern][l] = g_work[(i-1)*stage_intern][l]+ pas * al1 * g_calc[l]; //calculate 6th
-                    }
-
+                    }   
+                       
+                    g_work_s[1+i_1_stage_intern] = g_work_s[i_1_stage_intern]+ pas_al1_s * g_calc_s; //calculate 6th
                     //r = x0n + (1 + stage_intern * stage_intern * (i - 1)) * pas * al1;  //r update (realted to 3-copy)
-                      
                     for (int k = 2; k <= stage_intern; k++)
                     {
-                        int k_i_1_stage_intern =k+i_1_stage_intern;
-                        for (int l = 0; l < neqn; l++)
-                        {
-                            g_help[l] = g_work[k_i_1_stage_intern-1][l];
-                           //g_help[l] = g_work[k+(i-1)*stage_intern-1][l];
-                        }
-                        f(neqn, r, g_help, g_calc); //function cal
+                        k_i_1_stage_intern =k+i_1_stage_intern;
+                        g_help_s = g_work_s[k_i_1_stage_intern-1];
+                        f(neqn, r_s, &g_help_s, &g_calc_s); 
                         feval = feval + 1;
-                        
-                        for (int l = 0; l < neqn; l++)
-                        {
-                            g_work[k_i_1_stage_intern][l] = 2.0 * g_work[k_i_1_stage_intern-1][l]
-                                                                  - g_work[k_i_1_stage_intern-2][l] 
-                                                                  +  pas_al1_2 * g_calc[l];
-                        
-                            /*g_work[k+(i-1)*stage_intern][l] = 2.0 * g_work[k+(i-1)*stage_intern-1][l]
-                                                                  - g_work[k+(i-1)*stage_intern-2][l] 
-                                                                  + 2.0 * pas * al1 * g_calc[l];
-                         */
-                        }
+                        g_work_s[k_i_1_stage_intern] = 2.0 * g_work_s[k_i_1_stage_intern-1]- g_work_s[k_i_1_stage_intern-2] +  pas_al1_2_s * g_calc_s;
                         //r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
                     }
                 }
-                ODD_STAGE<ORDER>(stage, stage_intern, neqn, g_help, g_work, g_calc, r, &feval, pas, al1);
-              for (int k = 0; k < stage + 1; k++)
-                {
-                    for (int l = 0; l < neqn; l++)
-                    {
-                        sum[l] = sum[l] + b[(start) + k] * g_work[k][l];
-                      //printf("%f \t", g_work[k][l] );
-                   // printf("%f \t", sum[l] );
-                    }
-
-                      // printf("%f \t", b[start+k] );
+                ODD_STAGE<ORDER>(stage, stage_intern, neqn, &g_help_s, g_work_s, &g_calc_s, r_s, &feval, pas_s, al1);  
+                for (int k = 0; k < stage + 1; k++){         
+                    sum_s +=  b[start+k] * g_work_s[k];
                 }
-                // printf("\n");
-                for (int l = 0; l < neqn; l++)
-                {
-                    y[i1 - 1][l] = sum[l];
-                //   y0n[l] = sum[l];
-                  //  sum[l] = 0.0;
-                }
-
-                for (int l = 0; l < neqn; l++)
-                {
-                    y0n[l] = sum[l];
-                }
-
-                for (int l = 0; l < neqn; l++)
-                {
-                    sum[l] = 0.0;
-                }
-                //std::copy(sum,sum+neqn,&y[i1-1][0]);
-                //std::copy(sum,sum+neqn,y0n);
-                //std::fill(sum,sum+neqn,0);
-                x0n = x0n + pas;
-            }
+                y_s[i1 - 1] = sum_s;
+                y0n_s = sum_s;
+                sum_s = 0.0;
+                x0n_s = x0n_s + pas_s;
+            printf(" j=%d passed\t ",j);
+            } 
+        
+        printf("\n");
         }
-        //auto end = std::chrono::system_clock::now();
-       // elapsed_seconds += (end - start_1);
-        //std::time_t end_time_1 = std::chrono::system_clock::to_time_t(end);
-       
-       /*for(int i1=0; i1<5; i1++){
-       for(int i=0; i<neqn; i++){printf("%f \t",y[i1][i]);}
-       printf("\n");}
-        */
+        for(int dum=0; dum<highest_order; dum++)
+            y[dum][l]=y_s[dum];  
+        }
+       }
+       printf("outside \n");
+       return -1;
         err = 0.0;
         ERROR_CALCULATION<ORDER>(neqn, g_oth, g, y, sc, tol, &err);
         err = sqrt(err / neqn);
@@ -286,7 +261,7 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
         //reject if error is too large
         if ((isnan(err) || ((1.0 / err) <= 1.0)))
         { 
-            //printf("hey rej \n");
+            // printf("hey rej \n");
             rejected = rejected + 1;
             rej_counter = 0;
             tfail = t;
@@ -304,8 +279,8 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
             }
         }
         else
-        {  
-            //printf("hey accp \n");
+        {   
+            //printf("hey accep \n");
             accepted = accepted + 1;
             if (total > 1)
             {
@@ -381,16 +356,16 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
 
         printf("eigenmax= %.23f \n", eigmax);
         //printf("dt = %.16e \n",dt);
-        //cout<<"stage_intern "<<stage_intern<<endl;
-        //cout<<"stage "<<stage<<endl;
+       // cout<<"stage_intern "<<stage_intern<<endl;
+       // cout<<"stage "<<stage<<endl;
         //cout<<"al1 "<<al1<<endl;
         //printf("al1 %.16e\n",al1);
         //cout<<"*******************"<<endl;
-       // m = m+1;
+      // m = m +1;
     }
 
-    cout << "Time needed for SERK  " << elapsed_seconds_2.count() << endl;
-    cout << "Time needed  " << elapsed_seconds.count() << endl;
+   // cout << "Time needed for SERK  " << elapsed_seconds_2.count() << endl;
+   // cout << "Time needed  " << elapsed_seconds.count() << endl;
 
     *idid_p = 1;
     iwork[5] = feval;
@@ -398,18 +373,18 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     iwork[8] = rejected;
     iwork[10] = max_stages;
     cout << feval << endl;
-    delete[] sum;
-    delete[] g_calc;
-    delete[] g_help;
-    delete[] g_save;
+   // delete[] sum;
+   // delete[] g_calc;
+   // delete[] g_help;
+   // delete[] g_save;
     delete[] var_1;
     delete[] var_2;
     delete[] sc;
     delete[] g_oth;
     delete[] g_rej;
-    delete[] y0n;
+  //  delete[] y0n;
     delete[] y;
-    delete[] g_work;
+   // delete[] g_work;
     return 0;
 }
 
@@ -1061,22 +1036,16 @@ inline void FAC(double *fac_p, double *err_p)
 }
 
 template <int order>
-inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, double **g_work, double *g_calc, double r, int *feval_p, double pas, double al1)
+inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, double *g_work, double *g_calc, double r, int *feval_p, double pas, double al1)
 {
     if (order == 5)
     {
         if ((stage % stage_intern) == 1)
         {
-            for (int l = 0; l < neqn; l++)
-            {
-                g_help[l] = g_work[stage - 1][l];
-            }
+            *g_help = g_work[stage - 1];
             f(neqn, r, g_help, g_calc); //function call
             *feval_p = (*feval_p) + 1;
-            for (int l = 0; l < neqn; l++)
-            {
-                g_work[stage][l] = g_work[stage - 1][l] + pas * al1 * g_calc[l];
-            }
+            g_work[stage] = g_work[stage - 1] + pas * al1 * (*g_calc);
         }
     }
 }
