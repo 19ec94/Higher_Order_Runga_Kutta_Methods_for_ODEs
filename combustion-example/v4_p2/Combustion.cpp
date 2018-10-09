@@ -19,6 +19,7 @@ double f(int neqn, double x, double *y, double *f)
   R = 5.0L;
   par = 1.0L;
 
+/*
   for (int i = 0; i < neqn; i++)
   {
     if ((i % ns) == 0)
@@ -49,6 +50,41 @@ double f(int neqn, double x, double *y, double *f)
 
     f[i] = d * oneoverh2 * (uxx + uyy) + (R / (alpha * delta)) * (1.0 + alpha - y[i]) * exp(delta * (1.0 - par / y[i]));
   }
+
+*/
+
+for (int i = 0; i < neqn; i++)
+  {
+    if ((i % ns) == 0)
+    {
+      uxx = (-2.0 * y[i] + 2.0 * y[i + 1]) / 3.0;
+    }
+    else if ((i + 1) % ns == 0)
+    {
+      uxx = y[i - 1] - 2.0 * y[i] + 1.0;
+    }
+    else
+    {
+      uxx = y[i - 1] - 2.0 * y[i] + y[i + 1];
+    }
+
+    if (i < ns)
+    {
+      uyy = (-2.0 * y[i] + 2.0 * y[i + ns]) / 3.0;
+    }
+    else if (i >= nsnsm1)
+    {
+      uyy = y[i - ns] - 2.0 * y[i] + 1.0;
+    }
+    else
+    {
+      uyy = y[i - ns] - 2.0 * y[i] + y[i + ns];
+    }
+
+    f[i] = d * oneoverh2 * (uxx + uyy) + (R / (alpha * delta)) * (1.0 + alpha - y[i]) * exp(delta * (1.0 - par / y[i]));
+  }
+
+
 
   return 0;
 }

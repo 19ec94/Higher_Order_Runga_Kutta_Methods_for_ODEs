@@ -14,7 +14,7 @@ inline void RTOL(double *rtol_p);
 int main()
 {
   int *idid = NULL, *iwork = NULL, *spcrad = NULL, index;
-  const int ns = 300, neqn = ns * ns;
+  const int ns = 2, neqn = ns * ns;
   double *y = NULL, error = 0.0;
   double *truey = NULL, ans = 0, xx = 0, yy = 0;
   double t = 0, tend = 0, r = 0;

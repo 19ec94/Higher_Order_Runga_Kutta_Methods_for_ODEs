@@ -219,11 +219,6 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                             g_work[k_i_1_stage_intern][l] = 2.0 * g_work[k_i_1_stage_intern-1][l]
                                                                   - g_work[k_i_1_stage_intern-2][l] 
                                                                   +  pas_al1_2 * g_calc[l];
-                        
-                            /*g_work[k+(i-1)*stage_intern][l] = 2.0 * g_work[k+(i-1)*stage_intern-1][l]
-                                                                  - g_work[k+(i-1)*stage_intern-2][l] 
-                                                                  + 2.0 * pas * al1 * g_calc[l];
-                         */
                         }
                         //r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
                     }

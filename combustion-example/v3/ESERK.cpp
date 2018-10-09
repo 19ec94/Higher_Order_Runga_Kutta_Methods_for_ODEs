@@ -155,8 +155,8 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
 
     while (((t + dt) <= tend) && (m <= 1) && (total <= pow(10, 7)))
     { 
-      #pragma omp parallel num_threads(2) private(pas,x0n,pas_al1,pas_al1_2,r,y0n,g_help,sum,i_1_stage_intern,k_i_1_stage_intern) \
-                                                            shared(start>,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc,g_save) 
+      #pragma omp parallel num_threads(1) default(none)  private(pas,x0n,pas_al1,pas_al1_2,r,y0n,sum,i_1_stage_intern,k_i_1_stage_intern) \
+                                                            shared(start,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc,g_save,g_help) 
       {
            double **g_work = new double *[stage+1];
           for (int i = 0; i < (stage+1); i++)
@@ -218,48 +218,44 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
                     }
                 }
                 ODD_STAGE<ORDER>(stage, stage_intern, neqn, g_help, g_work, g_calc, r, &feval, pas, al1);  
-               /* if ((stage % stage_intern) == 1)
-                {
-                    for (int l = 0; l < neqn; l++)
-                    {
-                        g_help[l] = g_work[stage - 1][l];
-                    }
-                    f(neqn, r, g_help, g_calc); //function call
-                    feval = feval + 1;
-                    for (int l = 0; l < neqn; l++)
-                    {
-                    g_work[stage][l] = g_work[stage - 1][l] + pas * al1 * g_calc[l];
-                    }
-               } */  
-               //# pragma omp parallel for reduction(+: sum[:neqn]) schedule(static)
-               // #pragma omp critical 
-                //{    
                 for (int k = 0; k < stage + 1; k++){         
                     for (int l = 0; l < neqn; l++){sum[l] +=  b[start+k] * g_work[k][l];
-                     //printf("%f \t", g_work[k][l] );
-                     //printf("%f \t", sum[l] );
                     }
-                    // printf("%f \t", b[start+k] );
                 }
-                  //  printf("\n");
-                //}
                
                 for (int l = 0; l < neqn; l++){y[i1 - 1][l] = sum[l];}
                 for (int l = 0; l < neqn; l++){y0n[l] = sum[l];}
                 for (int l = 0; l < neqn; l++){sum[l] = 0.0;}
                 x0n = x0n + pas;
-            }   
-            //for(int z=0; z<neqn; z++)
-           // printf("%f \t", y0n[z]);  
-           // printf("\n");       
+            }
+            printf("\n");   
+        #pragma omp critical
+        {
+        for(int i1=0; i1<stage+1; i1++){
+          for(int i=0; i<neqn; i++){
+            printf("%f \t",g_work[i1][i]);
+        }
+        printf("\n");
+        }
+        }
+
+
         }
        // delete[] g_work;
+       
        }
-       /*for(int i1=0; i1<5; i1++){
-       for(int i=0; i<neqn; i++){printf("%f \t",y[i1][i]);}
-       printf("\n");}
-      */
+       
+/*
+       for(int dum=0; dum<highest_order; dum++){
+           for(int l=0; l<neqn; l++){
+             printf("%f \t",y[dum][l] );
+           }
+           printf("\n");
+       }
+      
+  */   
 
+       return 0;
         err = 0.0;
         ERROR_CALCULATION<ORDER>(neqn, g_oth, g, y, sc, tol, &err);
         err = sqrt(err / neqn);
@@ -1087,6 +1083,7 @@ inline void ODD_STAGE(int stage, int stage_intern, int neqn, double *g_help, dou
                 g_help[l] = g_work[stage - 1][l];
             }
             f(neqn, r, g_help, g_calc); //function call
+           // printf("%f \t",g_help[0]);
             *feval_p = (*feval_p) + 1;
             for (int l = 0; l < neqn; l++)
             {

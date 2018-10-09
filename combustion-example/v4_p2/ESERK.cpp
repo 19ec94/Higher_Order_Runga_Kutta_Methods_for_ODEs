@@ -158,94 +158,128 @@ double ESERK(int neqn, double t, double tend, double dt, double *g, double tol, 
     double pas_al1_2_s;
     double y0n_s;
     double g_s;
-    double g_calc_s;
-    double g_save_s;
+    double *g_calc_s = new double;
+    double *g_save_s = new double;
     double r_s;
-    double g_help_s;
+    double *g_help_s = new double;
     double sum_s;
-
+    double *g_work_s = new double [stage+1];
+    double *y_s = new double[highest_order];
 
     while (((t + dt) <= tend) && (m <= 1) && (total <= pow(10, 7)))
     { 
         printf("inside hte \n");
         
-      #pragma omp parallel num_threads(1) default(none) private(g_s,pas_s,x0n_s,pas_al1_s,pas_al1_2_s,r_s,y0n_s,g_help_s,sum_s,i_1_stage_intern,k_i_1_stage_intern) \
-        shared(start,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc_s,g_save_s,g_calc,g_save) 
-      {
-        double *g_work_s = new double [stage+1];
-        double *y_s = new double[highest_order];
-        #pragma omp for  reduction(+:feval) 
-        for(int l=0; l<1; l++)
+     // #pragma omp parallel num_threads(1) default(none) private(g_s,pas_s,x0n_s,pas_al1_s,pas_al1_2_s,r_s,y0n_s,g_help_s,sum_s,i_1_stage_intern,k_i_1_stage_intern) \
+     //   shared(start,al1,g,b,dt,t,neqn,y,feval,highest_order,stage,stage_intern)  firstprivate(g_calc_s,g_save_s,g_calc,g_save) 
+      //{
+       
+       // #pragma omp for  reduction(+:feval) 
+        for(int l=0; l<neqn; l++)
         {  
-            g_calc_s=g_calc[l];
-            g_save_s=g_save[l];
+            *g_calc_s=g_calc[l];
+            *g_save_s=g_save[l];
             y0n_s=g[l];
             g_s=g[l];
-        printf("l=%d success \n",l);
-        for (int i1 = 1; i1 <= 1; i1++)
+       // printf("l=%d success \n",l);
+        for (int i1 = 1; i1 <= highest_order; i1++)
         { 
             pas_s = dt / (double)i1;
             x0n_s = t;
             pas_al1_s = pas_s *al1;
             pas_al1_2_s = 2.0*pas_al1_s;  
             y0n_s = g_s; 
-            g_s=g_s; //1-copy
             if (t > 0)
             {
-                f(neqn, t, &g_s, &g_calc_s); //f is the fcombusion function
+                f(neqn, t, &g_s, g_calc_s); //f is the fcombusion function
                 feval = feval + 1;
-                g_save_s = g_calc_s; 
+                (*g_save_s) = (*g_calc_s); 
             }
-            printf(" i1=%d passed\t",i1);
+           // printf(" i1=%d passed\t",i1);
             for (int j = 1; j <= i1; j++)
             {
                 r_s = x0n_s; //3-copy
                 g_work_s[0] = y0n_s; 
+                //printf("%f \t",g_work_s[0]);
                 for (int i = 1; i <= (stage / stage_intern); i++)
                 {
                     i_1_stage_intern = (i-1)*stage_intern;
                     if (j == 1 && i == 1)
                     {
-                        g_calc_s = g_save_s; //fourth copy 
+                        (*g_calc_s) = (*g_save_s); //fourth copy 
                     }
                     else
                     {   
-                        g_help_s = g_work_s[i_1_stage_intern];  //calculate and copy 5th copy 
-                        f(neqn, r_s, &g_help_s, &g_calc_s); //function call
+                        (*g_help_s) = g_work_s[i_1_stage_intern];  //calculate and copy 5th copy 
+                        f(neqn, r_s, g_help_s, g_calc_s); //function call
                         feval = feval + 1;
                     }   
                        
-                    g_work_s[1+i_1_stage_intern] = g_work_s[i_1_stage_intern]+ pas_al1_s * g_calc_s; //calculate 6th
+                    g_work_s[1+i_1_stage_intern] = g_work_s[i_1_stage_intern]+ pas_al1_s * (*g_calc_s); //calculate 6th
                     //r = x0n + (1 + stage_intern * stage_intern * (i - 1)) * pas * al1;  //r update (realted to 3-copy)
                     for (int k = 2; k <= stage_intern; k++)
                     {
                         k_i_1_stage_intern =k+i_1_stage_intern;
-                        g_help_s = g_work_s[k_i_1_stage_intern-1];
-                        f(neqn, r_s, &g_help_s, &g_calc_s); 
+                        *g_help_s = g_work_s[k_i_1_stage_intern-1];
+                        f(neqn, r_s, g_help_s, g_calc_s); 
                         feval = feval + 1;
-                        g_work_s[k_i_1_stage_intern] = 2.0 * g_work_s[k_i_1_stage_intern-1]- g_work_s[k_i_1_stage_intern-2] +  pas_al1_2_s * g_calc_s;
+                        g_work_s[k_i_1_stage_intern] = 2.0 * g_work_s[k_i_1_stage_intern-1]- g_work_s[k_i_1_stage_intern-2] +  pas_al1_2_s * (*g_calc_s);
                         //r = x0n + al1 * (k * k + stage_intern * stage_intern * (i - 1)) * pas;  //ask what does it contribute to calculation
                     }
                 }
-                ODD_STAGE<ORDER>(stage, stage_intern, neqn, &g_help_s, g_work_s, &g_calc_s, r_s, &feval, pas_s, al1);  
+                //ODD_STAGE<ORDER>(stage, stage_intern, neqn, &g_help_s, g_work_s, &g_calc_s, r_s, &feval, pas_s, al1);  
+                //if (order == 5)
+               // {
+                    if ((stage % stage_intern) == 1)
+                    {   
+                        *g_help_s = g_work_s[stage - 1];
+                        f(neqn, r, g_help_s, g_calc_s); //function call
+                        //printf("%f \t",*g_help_s);
+                        feval = (feval) + 1;
+                        g_work_s[stage] = g_work_s[stage - 1] + pas_s * al1 * (*g_calc_s);
+                    }
+
+                   // printf("%f \t",g_work_s[stage]);
+                //}
+                
+                
                 for (int k = 0; k < stage + 1; k++){         
                     sum_s +=  b[start+k] * g_work_s[k];
+                   // printf("%f \t",g_work_s[k]);
                 }
+               // printf("\n");
+               // printf("%f \t",sum_s);
                 y_s[i1 - 1] = sum_s;
                 y0n_s = sum_s;
                 sum_s = 0.0;
                 x0n_s = x0n_s + pas_s;
-            printf(" j=%d passed\t ",j);
-            } 
-        
-        printf("\n");
+            }
+             for (int k = 0; k < stage + 1; k++){         
+                    printf("%f \t",g_work_s[k]);
+                }
+               
+             printf("\n");
         }
         for(int dum=0; dum<highest_order; dum++)
             y[dum][l]=y_s[dum];  
+            printf("******************\n");
+        /*for(int dum=0; dum<highest_order; dum++){
+           for(int l=0; l<neqn; l++){
+             printf("%f \t",y[dum][l] );
+           }
+           printf("\n");
+          }*/ 
         }
-       }
+      // }
+       /*for(int dum=0; dum<highest_order; dum++){
+           for(int l=0; l<neqn; l++){
+             printf("%f \t",y[dum][l] );
+           }
+           printf("\n");
+       } */
+      
        printf("outside \n");
-       return -1;
+       return 0;
         err = 0.0;
         ERROR_CALCULATION<ORDER>(neqn, g_oth, g, y, sc, tol, &err);
         err = sqrt(err / neqn);
